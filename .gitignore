@@ -4,3 +4,4 @@ weights
 __pycache__
 data/
 weights/
+sample_train.py

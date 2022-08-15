@@ -1,5 +1,4 @@
 import os
-from turtle import width
 import cv2
 import numpy as np
 import torch
@@ -8,11 +7,9 @@ from PIL import Image
 import torchvision.transforms.functional as F
 
 class DatasetThesis(torch.utils.data.Dataset):
-    def __init__(self, img_txt, label_txt, width = 480, height = 480, transforms=None, num_classes=-1):
+    def __init__(self, img_txt, label_txt, transforms=None, num_classes=-1):
         self.transforms = transforms
         self.num_classes = num_classes
-        self.width = width
-        self.height = height
 
         with open(img_txt, 'r') as f:
             self.imgs = f.readlines()
@@ -57,10 +54,10 @@ class DatasetThesis(torch.utils.data.Dataset):
         for i in range(boxes.shape[0]):
             cls, cx, cy, box_w, box_h = boxes[i, :]
             # relative labels
-            xmin = (cx - box_w / 2) # / w * self.width
-            xmax = (cx + box_w / 2) # / w * self.width
-            ymin = (cy - box_h / 2) # / h * self.height
-            ymax = (cy + box_h / 2) # / h * self.height
+            xmin = (cx - box_w / 2) 
+            xmax = (cx + box_w / 2) 
+            ymin = (cy - box_h / 2) 
+            ymax = (cy + box_h / 2) 
             
             # dataset comes as 0 indexed 
             labels[i] = cls  + 1 
