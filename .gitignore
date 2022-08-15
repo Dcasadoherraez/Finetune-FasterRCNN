@@ -2,3 +2,5 @@ images
 labels
 weights
 __pycache__
+data/
+weights/

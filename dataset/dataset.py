@@ -1,13 +1,18 @@
 import os
+from turtle import width
+import cv2
 import numpy as np
 import torch
 import torch.utils.data
 from PIL import Image
+import torchvision.transforms.functional as F
 
-class DatsetThesis(torch.utils.data.Dataset):
-    def __init__(self, img_txt, label_txt, transforms=None, num_classes=-1):
+class DatasetThesis(torch.utils.data.Dataset):
+    def __init__(self, img_txt, label_txt, width = 480, height = 480, transforms=None, num_classes=-1):
         self.transforms = transforms
         self.num_classes = num_classes
+        self.width = width
+        self.height = height
 
         with open(img_txt, 'r') as f:
             self.imgs = f.readlines()
@@ -21,8 +26,8 @@ class DatsetThesis(torch.utils.data.Dataset):
         img_path = self.imgs[idx]
         label_path = self.labels[idx]
         img = Image.open(img_path).convert("RGB")
-        w, h = img.size
         img = np.array(img)
+        h, w, _ = img.shape
 
         boxes_raw = np.loadtxt(label_path)
         num_objs = boxes_raw.shape[0]
@@ -32,9 +37,8 @@ class DatsetThesis(torch.utils.data.Dataset):
             # print("boxes_raw shape: ", boxes_raw.shape)
             num_objs = 1
 
-        # print('boxes_raw',boxes_raw.shape)
         boxes = torch.as_tensor(boxes_raw, dtype=torch.float32)
-        # print('boxes',boxes.shape)
+
         if len(boxes.shape) == 1:
             boxes = boxes.unsqueeze(0)
 
@@ -43,24 +47,26 @@ class DatsetThesis(torch.utils.data.Dataset):
         if self.transforms is not None:
             data = [img, boxes_raw]
             img, boxes = self.transforms(data)
+            # img = F.resize(img, size=[self.width, self.height]) 
             boxes = boxes[:, 1:]
 
         boxes_xyxy = []
-        labels = torch.ones((num_objs,), dtype=torch.int64)
-        crowds = torch.ones((num_objs,), dtype=torch.int64)
-
-        # print("BOXES", boxes.shape)
+        labels = torch.zeros((num_objs,), dtype=torch.int64)
+        crowds = torch.zeros((num_objs,), dtype=torch.int64)
 
         for i in range(boxes.shape[0]):
-            cls, cx, cy, w, h = boxes[i, :]
+            cls, cx, cy, box_w, box_h = boxes[i, :]
             # relative labels
-            xmin = cx - w / 2
-            xmax = cx + w / 2
-            ymin = cy - h / 2
-            ymax = cy + h / 2
-            labels[i] = cls + 1 
-            crowds[i] = 0.0
+            xmin = (cx - box_w / 2) # / w * self.width
+            xmax = (cx + box_w / 2) # / w * self.width
+            ymin = (cy - box_h / 2) # / h * self.height
+            ymax = (cy + box_h / 2) # / h * self.height
+            
+            # dataset comes as 0 indexed 
+            labels[i] = cls  + 1 
+            
             boxes_xyxy.append([xmin, ymin, xmax, ymax])
+        
         boxes_xyxy = torch.as_tensor(boxes_xyxy, dtype=torch.float32)
         
         if len(boxes_xyxy.shape) == 1:
